@@ -5,7 +5,25 @@
 参考速度：350题/15分钟
 
 使用Cookies
-## 用法
+## 使用方法
+
+### 1. 懒得了解python
+注：程序中都有提示
+
+下载自己chrome对应版本的chromedriver，自己搜搜
+
+国内可以考虑: http://npm.taobao.org/mirrors/chromedriver/
+
+国外的话: http://chromedriver.storage.googleapis.com/
+
+下载完放到exe同目录或者添加path
+
+然后运行Spider v?.?.?.exe根据提示操作，注册码用Register Machine.exe（1.2以后不需要key）
+
+### 2. 有一定py和爬虫基础
+主程序Spider.py, 看着import自己pip装插件
+少注释，感觉较好理解
+
 ## 版本记录
 
 ### v ? -1
