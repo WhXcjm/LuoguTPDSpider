@@ -18,17 +18,20 @@ import sys
 import re
 import os
 
-warnings.filterwarnings("ignore",category=DeprecationWarning)
-Key = int(time.strftime("%Y%m%d"))** 11 * int(time.strftime("%m%Y%d")) % 1000001
-inKey = int(input('Please input the key:'))
-print("Please wait for 2 seconds")
-time.sleep(2)
-if (inKey == Key):
-	print("Verification succeeded")
-else:
-	print("Verification failed")
-	input()
-	exit()
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# register
+# Key = int(time.strftime("%Y%m%d"))** 11 * int(time.strftime("%m%Y%d")) % 1000001
+# inKey = int(input('Please input the key:'))
+# print("Please wait for 2 seconds")
+# time.sleep(2)
+# if (inKey == Key):
+# 	print("Verification succeeded")
+# else:
+# 	print("Verification failed")
+# 	input()
+# 	exit()
+
 # Preparation
 def PR(a):
 	sys.stdout.write(a)
@@ -65,7 +68,7 @@ except WebDriverException as e:
 	print('Press \'M\' to see details or any other key to exit')
 	KKey = str(msvcrt.getch().decode('utf8'))
 	if (KKey == 'm' or KKey == 'M'):
-		print(e)
+		print(e,end='')
 	else:
 		exit()
 	msvcrt.getch()
@@ -98,7 +101,7 @@ else:
 # ---------------
 browser.get(GroupProblemsPage)
 wait = WebDriverWait(browser, 10)
-wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'card-header')))
+wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'card-header')))# 加载出“团队题目”即可
 browser.delete_all_cookies()
 with open(CookiesFile, 'r') as f:
 	# 使用json读取cookies 注意读取的是文件 所以用load而不是loads
@@ -107,43 +110,50 @@ with open(CookiesFile, 'r') as f:
 		browser.add_cookie(cookie)
 # ---------------
 browser.refresh()
-wait = WebDriverWait(browser, 10)
-wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'row-wrap')))
-# ---------------
-
-# browser.close()
-# ---------------
-html = browser.page_source
-# with open('.\\log\\problems_page.html', 'wb') as f:
-# 	f.write((html).encode("GBK",'ignore'))
-PagesTotal = re.search(PagesRe, html)
-PagesTotal = int(PagesTotal.group(1))
-PagesList=[]
-for i in range(1,PagesTotal+1):
-	tmppage = '{}{}{}'.format(GroupProblemsPage, '?page=', i)
-	PagesList.append(tmppage)
-# print(PagesList)
-log.write(str(PagesList))
-ProblemsSet=[]
-for web in PagesList:
-	browser.get(web)
+ProblemsSetFile = Path(r'.\Output\ProblemsSet.json')
+if (ProblemsSetFile.exists()):
+	pass
+else:
+	# ---------------
+	# browser.close()
+	# ---------------
+	browser.get(GroupProblemsPage)
 	wait = WebDriverWait(browser, 10)
-	wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'row-wrap')))
+	wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'total')))#加载出具体题目列表
 	html = browser.page_source
-	log.write(str((html).encode("GBK",'ignore')))
-	ProblemsSet.extend(re.findall(ProblemsSetRe, html))
-ProblemsSet.sort()
-log.write(str(ProblemsSet))
-with open('ProblemsSet.json', 'w', encoding='utf8') as fp:
-	json.dump(ProblemsSet,fp,ensure_ascii=False)
+	# with open('.\\log\\problems_page.html', 'wb') as f:
+	# 	f.write((html).encode("GBK",'ignore'))
+	PagesTotal = re.search(PagesRe, html)
+	PagesTotal = int(PagesTotal.group(1))
+	PagesList=[]
+	for i in range(1,PagesTotal+1):
+		tmppage = '{}{}{}'.format(GroupProblemsPage, '?page=', i)
+		PagesList.append(tmppage)
+	# print(PagesList)
+	log.write(str(PagesList))
+	ProblemsSet=[]
+	for web in PagesList:
+		browser.get(web)
+		wait = WebDriverWait(browser, 10)
+		wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'total')))
+		html = browser.page_source
+		log.write(str((html).encode("GBK",'ignore')))
+		ProblemsSet.extend(re.findall(ProblemsSetRe, html))
+	ProblemsSet.sort()
+	log.write(str(ProblemsSet))
+	with open(ProblemsSetFile, 'w', encoding='utf8') as fp:
+		json.dump(ProblemsSet,fp,ensure_ascii=False)
 # ---------------
 
 # has saved ProblemsSet
 ProblemsSet = []
-with open('ProblemsSet.json', 'r', encoding='utf8') as fp:
+with open(ProblemsSetFile, 'r', encoding='utf8') as fp:
 	ProblemsSet = json.load(fp)
 for problem in ProblemsSet:
 	Num = str(problem[0])
+#test
+	# Num = 'T29952'
+	
 	PR(Num)
 	OutputPath = '.\\Output\\{}\\'.format(Num)
 	try:
@@ -155,11 +165,15 @@ for problem in ProblemsSet:
 	log.write('-----\n{}\nQuesUrl:{}\nDataUrl:{}\n'.format(
 		problem[0], urlq, urld))
 	PR('.')
-	browser.get(urlq)
+	browser.set_script_timeout(5)
+	browser.set_page_load_timeout(5)
+	try:
+		browser.get(urlq)
+	except WebDriverException as e:
+		print('  ERROR!! {}'.format(e),end='')
+		log.write('{}\n'.format(e))
+		# if timeout when getting problem-card
 	log.write('Getting the problem-card\n')
-
-	wait = WebDriverWait(browser, 10)
-	wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'main')))
 	html = browser.page_source
 	PR('.')
 	ProblemCard = re.search(ProblemCardRe, html)
@@ -191,7 +205,13 @@ for problem in ProblemsSet:
 	log.write('\nGetting {}\'s Data\n'.format(Num))
 	PR('.')
 	# print(DataUrl)
-	res = requests.get(url=DataUrl, headers=headers, timeout=(5,600))
+	try:
+		res = requests.get(url=DataUrl, headers=headers, timeout=(5, 600))
+	except requests.ConnectionError as e:
+		print('  ERROR!! {}'.format(e),end='')
+		log.write('{}\n'.format(e))
+		continue
+		# if timeout when getting data
 	# print(res)
 	if res.status_code != requests.codes.ok:
 		print('Failed in {}'.format(Num))
@@ -203,6 +223,9 @@ for problem in ProblemsSet:
 	PR('.\n')
 	# -----------
 	log.write('\n')
+#test
+	# break
+
 log.close()
 browser.close()
 # %%
